@@ -1,1 +1,991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>Moon&sun | Administrador</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0f0f12;
+      color: #f5f5f5;
+      min-height: 100vh;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 520px;
+      margin: auto;
+      min-height: 100vh;
+      background: #17171b;
+    }
+
+    /* LOGIN */
+    #loginScreen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 25px;
+    }
+
+    .login-box {
+      width: 100%;
+      background: #202025;
+      border: 1px solid #33333a;
+      border-radius: 24px;
+      padding: 30px 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    }
+
+    .logo {
+      text-align: center;
+      font-size: 34px;
+      margin-bottom: 5px;
+    }
+
+    .brand {
+      text-align: center;
+      font-size: 25px;
+      font-weight: 700;
+      letter-spacing: .5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #aaaab3;
+      font-size: 14px;
+      margin-top: 7px;
+      margin-bottom: 28px;
+    }
+
+    label {
+      display: block;
+      color: #c9c9d0;
+      font-size: 13px;
+      margin: 0 0 7px 3px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #3a3a42;
+      background: #111115;
+      color: white;
+      border-radius: 13px;
+      padding: 14px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #bda76b;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: #d5bd7b;
+      color: #171717;
+      padding: 15px;
+      border-radius: 14px;
+      margin-top: 6px;
+    }
+
+    .btn-primary:active {
+      transform: scale(.99);
+    }
+
+    .error {
+      background: #4a2225;
+      color: #ffb4b4;
+      border: 1px solid #73383d;
+      padding: 11px;
+      border-radius: 11px;
+      font-size: 13px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    /* ADMIN */
+    #adminScreen {
+      display: none;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(23,23,27,.96);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #303038;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topbar-brand {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .topbar-brand span {
+      color: #d5bd7b;
+    }
+
+    .logout {
+      background: #29292f;
+      color: #ddd;
+      border: 1px solid #3a3a42;
+      padding: 9px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+
+    .content {
+      padding: 18px 15px 35px;
+    }
+
+    .welcome {
+      margin-bottom: 18px;
+    }
+
+    .welcome h1 {
+      font-size: 25px;
+      margin-bottom: 5px;
+    }
+
+    .welcome p {
+      color: #9999a3;
+      font-size: 14px;
+    }
+
+    .card {
+      background: #202025;
+      border: 1px solid #303038;
+      border-radius: 18px;
+      padding: 17px;
+      margin-bottom: 17px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 5px 0 3px;
+    }
+
+    .checkbox-row input {
+      width: 19px;
+      height: 19px;
+      accent-color: #d5bd7b;
+    }
+
+    .checkbox-row label {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .message {
+      margin-top: 12px;
+      padding: 11px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .success {
+      background: #173d2a;
+      border: 1px solid #286644;
+      color: #a9efc5;
+    }
+
+    .products-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .count {
+      color: #aaa;
+      font-size: 12px;
+      background: #29292f;
+      border-radius: 20px;
+      padding: 6px 10px;
+    }
+
+    .product {
+      background: #17171b;
+      border: 1px solid #303038;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .product-name {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .product-meta {
+      color: #a5a5ae;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .product-price {
+      color: #d5bd7b;
+      font-size: 17px;
+      font-weight: 700;
+      margin-top: 7px;
+    }
+
+    .status {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 20px;
+    }
+
+    .available {
+      background: #173d2a;
+      color: #9fe4b9;
+    }
+
+    .unavailable {
+      background: #45272a;
+      color: #ffb2b2;
+    }
+
+    .empty {
+      text-align: center;
+      color: #85858f;
+      padding: 20px 5px;
+      font-size: 14px;
+    }
+
+    @media (min-width: 521px) {
+      body {
+        padding: 20px 0;
+      }
+
+      .app {
+        border-radius: 24px;
+        overflow: hidden;
+        min-height: calc(100vh - 40px);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- =========================
+       LOGIN
+  ========================== -->
+  <section id="loginScreen">
+
+    <div class="login-box">
+
+      <div class="logo">🌙</div>
+
+      <div class="brand">Moon&sun</div>
+
+      <div class="subtitle">
+        Panel privado de administración
+      </div>
+
+      <div id="loginError" class="error"></div>
+
+      <div class="field">
+        <label for="email">Correo electrónico</label>
+        <input
+          type="email"
+          id="email"
+          placeholder="admin@moonandsun.com"
+          autocomplete="email"
+        >
+      </div>
+
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <input
+          type="password"
+          id="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+        >
+      </div>
+
+      <button class="btn-primary" onclick="login()">
+        Entrar al administrador
+      </button>
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================
+       ADMIN
+  ========================== -->
+  <section id="adminScreen">
+
+    <header class="topbar">
+
+      <div class="topbar-brand">
+        🌙 <span>Moon&sun</span>
+      </div>
+
+      <button class="logout" onclick="logout()">
+        Cerrar sesión
+      </button>
+
+    </header>
+
+
+    <main class="content">
+
+      <div class="welcome">
+        <h1>Administrador</h1>
+        <p>Gestiona tu catálogo de joyería.</p>
+      </div>
+
+
+      <!-- NUEVO PRODUCTO -->
+      <div class="card">
+
+        <div class="card-title">
+          ➕ Nuevo producto
+        </div>
+
+        <div class="field">
+          <label>Nombre del producto</label>
+          <input
+            type="text"
+            id="nombre"
+            placeholder="Ej. Anillo Corazón"
+          >
+        </div>
+
+
+        <div class="row">
+
+          <div class="field">
+            <label>Precio</label>
+            <input
+              type="number"
+              id="precio"
+              placeholder="299"
+              min="0"
+              step="0.01"
+            >
+          </div>
+
+          <div class="field">
+            <label>Categoría</label>
+
+            <select id="categoria">
+              <option value="Anillos">Anillos</option>
+              <option value="Cadenas">Cadenas</option>
+              <option value="Pulseras">Pulseras</option>
+              <option value="Aretes">Aretes</option>
+              <option value="Collares">Collares</option>
+              <option value="Otros">Otros</option>
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <div class="row">
+
+          <div class="field">
+            <label>Material</label>
+            <input
+              type="text"
+              id="material"
+              value="Acero inoxidable"
+            >
+          </div>
+
+          <div class="field">
+            <label>Medida / talla</label>
+            <input
+              type="text"
+              id="medida"
+              placeholder="Ej. Talla 7"
+            >
+          </div>
+
+        </div>
+
+
+        <div class="field">
+
+          <label>Descripción</label>
+
+          <textarea
+            id="descripcion"
+            placeholder="Describe brevemente el producto..."
+          ></textarea>
+
+        </div>
+
+
+        <div class="checkbox-row">
+
+          <input
+            type="checkbox"
+            id="disponible"
+            checked
+          >
+
+          <label for="disponible">
+            Producto disponible
+          </label>
+
+        </div>
+
+
+        <div class="checkbox-row">
+
+          <input
+            type="checkbox"
+            id="destacado"
+          >
+
+          <label for="destacado">
+            ⭐ Mostrar como destacado
+          </label>
+
+        </div>
+
+
+        <button
+          class="btn-primary"
+          onclick="guardarProducto()"
+        >
+          💾 Guardar producto
+        </button>
+
+
+        <div
+          id="saveMessage"
+          class="message success"
+        ></div>
+
+      </div>
+
+
+      <!-- PRODUCTOS -->
+      <div class="card">
+
+        <div class="products-header">
+
+          <div class="card-title" style="margin:0;">
+            📦 Mis productos
+          </div>
+
+          <div id="productCount" class="count">
+            0 productos
+          </div>
+
+        </div>
+
+        <div id="productsList">
+          <div class="empty">
+            Cargando productos...
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+  </section>
+
+</div>
+
+
+<script>
+
+  /* =========================================
+     FIREBASE
+  ========================================== */
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBhKr9JAaTSA3UlF_xqkeaNqDQPyeRA6kE",
+    authDomain: "moonandsun-6bcf2.firebaseapp.com",
+    projectId: "moonandsun-6bcf2",
+    storageBucket: "moonandsun-6bcf2.firebasestorage.app",
+    messagingSenderId: "79585516015",
+    appId: "1:79585516015:web:c838d7c30dc1a6bb707e1a"
+  };
+
+
+  firebase.initializeApp(firebaseConfig);
+
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+
+  /* =========================================
+     ELEMENTOS
+  ========================================== */
+
+  const loginScreen =
+    document.getElementById("loginScreen");
+
+  const adminScreen =
+    document.getElementById("adminScreen");
+
+  const loginError =
+    document.getElementById("loginError");
+
+
+  /* =========================================
+     SESIÓN
+  ========================================== */
+
+  auth.onAuthStateChanged(user => {
+
+    if (user) {
+
+      loginScreen.style.display = "none";
+      adminScreen.style.display = "block";
+
+      cargarProductos();
+
+    } else {
+
+      loginScreen.style.display = "flex";
+      adminScreen.style.display = "none";
+
+    }
+
+  });
+
+
+  /* =========================================
+     LOGIN
+  ========================================== */
+
+  async function login() {
+
+    const email =
+      document.getElementById("email").value.trim();
+
+    const password =
+      document.getElementById("password").value;
+
+
+    loginError.style.display = "none";
+
+
+    if (!email || !password) {
+
+      mostrarLoginError(
+        "Escribe tu correo y contraseña."
+      );
+
+      return;
+    }
+
+
+    try {
+
+      await auth.signInWithEmailAndPassword(
+        email,
+        password
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      let mensaje =
+        "No fue posible iniciar sesión.";
+
+      if (
+        error.code ===
+        "auth/invalid-credential"
+      ) {
+        mensaje =
+          "Correo o contraseña incorrectos.";
+      }
+
+      if (
+        error.code ===
+        "auth/user-not-found"
+      ) {
+        mensaje =
+          "No existe una cuenta con ese correo.";
+      }
+
+      mostrarLoginError(mensaje);
+
+    }
+
+  }
+
+
+  function mostrarLoginError(mensaje) {
+
+    loginError.textContent = mensaje;
+    loginError.style.display = "block";
+
+  }
+
+
+  /* =========================================
+     CERRAR SESIÓN
+  ========================================== */
+
+  async function logout() {
+
+    await auth.signOut();
+
+  }
+
+
+  /* =========================================
+     GUARDAR PRODUCTO
+  ========================================== */
+
+  async function guardarProducto() {
+
+    const nombre =
+      document.getElementById("nombre").value.trim();
+
+    const precio =
+      parseFloat(
+        document.getElementById("precio").value
+      );
+
+    const categoria =
+      document.getElementById("categoria").value;
+
+    const material =
+      document.getElementById("material").value.trim();
+
+    const medida =
+      document.getElementById("medida").value.trim();
+
+    const descripcion =
+      document.getElementById("descripcion").value.trim();
+
+    const disponible =
+      document.getElementById("disponible").checked;
+
+    const destacado =
+      document.getElementById("destacado").checked;
+
+
+    if (!nombre) {
+
+      alert("Escribe el nombre del producto.");
+
+      return;
+    }
+
+
+    if (isNaN(precio) || precio < 0) {
+
+      alert("Escribe un precio válido.");
+
+      return;
+    }
+
+
+    try {
+
+      await db.collection("productos").add({
+
+        nombre: nombre,
+
+        precio: precio,
+
+        categoria: categoria,
+
+        material:
+          material || "Acero inoxidable",
+
+        medida: medida,
+
+        descripcion: descripcion,
+
+        disponible: disponible,
+
+        destacado: destacado,
+
+        fechaCreacion:
+          firebase.firestore.FieldValue.serverTimestamp()
+
+      });
+
+
+      mostrarMensaje(
+        "✅ Producto guardado correctamente."
+      );
+
+
+      limpiarFormulario();
+
+      cargarProductos();
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert(
+        "No se pudo guardar el producto.\n\n" +
+        error.message
+      );
+
+    }
+
+  }
+
+
+  /* =========================================
+     LIMPIAR FORMULARIO
+  ========================================== */
+
+  function limpiarFormulario() {
+
+    document.getElementById("nombre").value = "";
+
+    document.getElementById("precio").value = "";
+
+    document.getElementById("categoria").value =
+      "Anillos";
+
+    document.getElementById("material").value =
+      "Acero inoxidable";
+
+    document.getElementById("medida").value = "";
+
+    document.getElementById("descripcion").value = "";
+
+    document.getElementById("disponible").checked =
+      true;
+
+    document.getElementById("destacado").checked =
+      false;
+
+  }
+
+
+  /* =========================================
+     MENSAJE
+  ========================================== */
+
+  function mostrarMensaje(texto) {
+
+    const box =
+      document.getElementById("saveMessage");
+
+    box.textContent = texto;
+
+    box.style.display = "block";
+
+
+    setTimeout(() => {
+
+      box.style.display = "none";
+
+    }, 3500);
+
+  }
+
+
+  /* =========================================
+     CARGAR PRODUCTOS
+  ========================================== */
+
+  async function cargarProductos() {
+
+    const lista =
+      document.getElementById("productsList");
+
+    const contador =
+      document.getElementById("productCount");
+
+
+    lista.innerHTML =
+      '<div class="empty">Cargando productos...</div>';
+
+
+    try {
+
+      const snapshot =
+        await db.collection("productos").get();
+
+
+      contador.textContent =
+        snapshot.size +
+        (snapshot.size === 1
+          ? " producto"
+          : " productos");
+
+
+      if (snapshot.empty) {
+
+        lista.innerHTML =
+          '<div class="empty">' +
+          'Todavía no hay productos.' +
+          '</div>';
+
+        return;
+      }
+
+
+      let html = "";
+
+
+      snapshot.forEach(doc => {
+
+        const p = doc.data();
+
+
+        const precio =
+          typeof p.precio === "number"
+            ? p.precio.toFixed(2)
+            : p.precio || "0.00";
+
+
+        html += `
+
+          <div class="product">
+
+            <div class="product-name">
+              ${escapeHTML(p.nombre || "Sin nombre")}
+            </div>
+
+            <div class="product-meta">
+
+              ${escapeHTML(p.categoria || "Sin categoría")}
+              ${p.material
+                ? " · " + escapeHTML(p.material)
+                : ""}
+
+              ${p.medida
+                ? " · " + escapeHTML(p.medida)
+                : ""}
+
+            </div>
+
+            <div class="product-price">
+              $${precio}
+            </div>
+
+            <span class="status ${
+              p.disponible
+                ? "available"
+                : "unavailable"
+            }">
+
+              ${
+                p.disponible
+                  ? "Disponible"
+                  : "Agotado"
+              }
+
+            </span>
+
+          </div>
+
+        `;
+
+      });
+
+
+      lista.innerHTML = html;
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      lista.innerHTML =
+        '<div class="empty">' +
+        'No se pudieron cargar los productos.' +
+        '</div>';
+
+    }
+
+  }
+
+
+  /* =========================================
+     SEGURIDAD DE TEXTO
+  ========================================== */
+
+  function escapeHTML(text) {
+
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  }
+
+</script>
+
+</body>
+</html>
