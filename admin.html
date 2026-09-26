@@ -331,6 +331,91 @@
       font-size: 14px;
     }
 
+    /* FOTO DEL PRODUCTO */
+    .foto-placeholder {
+      text-align: center;
+      color: #85858f;
+      font-size: 13px;
+      background: #17171b;
+      border: 1px dashed #3a3a42;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 10px;
+    }
+
+    .foto-preview-wrap {
+      margin-bottom: 10px;
+    }
+
+    .foto-preview-wrap img {
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid #3a3a42;
+      display: block;
+    }
+
+    .foto-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .btn-secondary {
+      background: #29292f;
+      color: #ddd;
+      border: 1px solid #3a3a42;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .btn-secondary:active {
+      transform: scale(.99);
+    }
+
+    .btn-quitar-foto {
+      width: 100%;
+      background: #45272a;
+      color: #ffb2b2;
+      border: 1px solid #6b3438;
+      padding: 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .foto-status {
+      font-size: 12px;
+      color: #c9c9d0;
+      background: #202025;
+      border: 1px solid #3a3a42;
+      border-radius: 10px;
+      padding: 9px;
+      margin-bottom: 8px;
+    }
+
+    .foto-status.uploading {
+      color: #d5bd7b;
+    }
+
+    .foto-status.error {
+      color: #ffb4b4;
+    }
+
+    .product-photo {
+      width: 100%;
+      max-height: 160px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
     @media (max-width: 430px) {
       .row {
         grid-template-columns: 1fr;
@@ -603,6 +688,69 @@
 
         <div class="card-title">
           ➕ Nuevo producto
+        </div>
+
+        <div class="field">
+
+          <label>📸 Foto del producto</label>
+
+          <div id="fotoPreviewWrap" class="foto-preview-wrap" style="display:none;">
+            <img id="fotoPreview" src="" alt="Vista previa del producto">
+          </div>
+
+          <div id="fotoPlaceholder" class="foto-placeholder">
+            Sin foto seleccionada
+          </div>
+
+          <div class="foto-actions">
+
+            <button
+              type="button"
+              class="btn-secondary"
+              onclick="document.getElementById('fotoGaleria').click()"
+            >
+              🖼️ Elegir de galería
+            </button>
+
+            <button
+              type="button"
+              class="btn-secondary"
+              onclick="document.getElementById('fotoCamara').click()"
+            >
+              📷 Tomar foto
+            </button>
+
+          </div>
+
+          <button
+            type="button"
+            id="btnQuitarFoto"
+            class="btn-quitar-foto"
+            style="display:none;"
+            onclick="quitarFoto()"
+          >
+            ✕ Quitar foto
+          </button>
+
+          <div id="fotoStatus" class="foto-status" style="display:none;"></div>
+
+          <input
+            type="file"
+            id="fotoGaleria"
+            accept="image/*"
+            style="display:none;"
+            onchange="manejarSeleccionFoto(event)"
+          >
+
+          <input
+            type="file"
+            id="fotoCamara"
+            accept="image/*"
+            capture="environment"
+            style="display:none;"
+            onchange="manejarSeleccionFoto(event)"
+          >
+
         </div>
 
         <div class="field">
@@ -1092,6 +1240,264 @@
 
 
   /* =========================================
+     IMAGEKIT — CONFIGURACIÓN
+  ========================================== */
+
+  const IMAGEKIT_URL_ENDPOINT =
+    "https://ik.imagekit.io/dgrxceuq2";
+
+  const IMAGEKIT_PUBLIC_KEY =
+    "public_m2lNKmTTlDQcE41azzT/9zBPG5A=";
+
+  const IMAGEKIT_AUTH_ENDPOINT =
+    "https://moonsun-imagekit-authb.virgoak47.workers.dev";
+
+
+  let imagenProductoUrl = null;
+  let imagenProductoFileId = null;
+  let subiendoImagen = false;
+
+
+  /* =========================================
+     FOTO DEL PRODUCTO — ESTADO VISUAL
+  ========================================== */
+
+  function mostrarEstadoFoto(texto, tipo) {
+
+    const box = document.getElementById("fotoStatus");
+
+    box.textContent = texto;
+    box.className = "foto-status" + (tipo ? " " + tipo : "");
+    box.style.display = texto ? "block" : "none";
+
+  }
+
+
+  function mostrarPreviewFoto(file) {
+
+    const url = URL.createObjectURL(file);
+
+    document.getElementById("fotoPreview").src = url;
+
+    document.getElementById("fotoPreviewWrap").style.display = "block";
+    document.getElementById("fotoPlaceholder").style.display = "none";
+    document.getElementById("btnQuitarFoto").style.display = "block";
+
+  }
+
+
+  function quitarFoto() {
+
+    imagenProductoUrl = null;
+    imagenProductoFileId = null;
+
+    document.getElementById("fotoPreview").src = "";
+    document.getElementById("fotoPreviewWrap").style.display = "none";
+    document.getElementById("fotoPlaceholder").style.display = "block";
+    document.getElementById("btnQuitarFoto").style.display = "none";
+
+    mostrarEstadoFoto("", null);
+
+  }
+
+
+  /* =========================================
+     FOTO DEL PRODUCTO — SELECCIÓN
+  ========================================== */
+
+  async function manejarSeleccionFoto(event) {
+
+    const input = event.target;
+    const file = input.files && input.files[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+
+      alert("Selecciona un archivo de imagen válido.");
+      input.value = "";
+      return;
+
+    }
+
+    try {
+
+      mostrarEstadoFoto("Procesando imagen...", "uploading");
+
+      const imagenComprimida = await comprimirImagen(file);
+
+      mostrarPreviewFoto(imagenComprimida);
+
+      await subirImagenAImageKit(imagenComprimida);
+
+    } catch (error) {
+
+      console.error(error);
+      mostrarEstadoFoto(
+        "❌ No se pudo procesar la imagen: " + error.message,
+        "error"
+      );
+
+    } finally {
+
+      input.value = "";
+
+    }
+
+  }
+
+
+  /* =========================================
+     FOTO DEL PRODUCTO — COMPRESIÓN / REDIMENSIÓN
+  ========================================== */
+
+  function comprimirImagen(file, maxDimension = 1000, calidad = 0.8) {
+
+    return new Promise((resolve, reject) => {
+
+      const lector = new FileReader();
+
+      lector.onload = (e) => {
+
+        const img = new Image();
+
+        img.onload = () => {
+
+          let ancho = img.width;
+          let alto = img.height;
+
+          if (ancho > maxDimension || alto > maxDimension) {
+
+            if (ancho > alto) {
+              alto = Math.round(alto * (maxDimension / ancho));
+              ancho = maxDimension;
+            } else {
+              ancho = Math.round(ancho * (maxDimension / alto));
+              alto = maxDimension;
+            }
+
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = ancho;
+          canvas.height = alto;
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, ancho, alto);
+
+          canvas.toBlob((blob) => {
+
+            if (!blob) {
+              reject(new Error("No se pudo comprimir la imagen."));
+              return;
+            }
+
+            const archivoComprimido = new File(
+              [blob],
+              (file.name || "producto") + ".jpg",
+              { type: "image/jpeg" }
+            );
+
+            resolve(archivoComprimido);
+
+          }, "image/jpeg", calidad);
+
+        };
+
+        img.onerror = () =>
+          reject(new Error("No se pudo leer la imagen."));
+
+        img.src = e.target.result;
+
+      };
+
+      lector.onerror = () =>
+        reject(new Error("No se pudo leer el archivo."));
+
+      lector.readAsDataURL(file);
+
+    });
+
+  }
+
+
+  /* =========================================
+     FOTO DEL PRODUCTO — SUBIDA A IMAGEKIT
+     (usa el Worker seguro de Cloudflare)
+  ========================================== */
+
+  async function subirImagenAImageKit(file) {
+
+    subiendoImagen = true;
+    mostrarEstadoFoto("Subiendo imagen...", "uploading");
+
+    try {
+
+      const respuestaAuth = await fetch(IMAGEKIT_AUTH_ENDPOINT);
+
+      if (!respuestaAuth.ok) {
+        throw new Error(
+          "No se pudo autenticar con el servidor de imágenes."
+        );
+      }
+
+      const auth = await respuestaAuth.json();
+
+      if (!auth.token || !auth.expire || !auth.signature) {
+        throw new Error("Respuesta de autenticación incompleta.");
+      }
+
+      const formData = new FormData();
+
+      formData.append("file", file);
+      formData.append("fileName", "producto_" + Date.now() + ".jpg");
+      formData.append("publicKey", IMAGEKIT_PUBLIC_KEY);
+      formData.append("signature", auth.signature);
+      formData.append("expire", auth.expire);
+      formData.append("token", auth.token);
+      formData.append("useUniqueFileName", "true");
+      formData.append("folder", "/productos");
+
+      const respuestaUpload = await fetch(
+        "https://upload.imagekit.io/api/v1/files/upload",
+        {
+          method: "POST",
+          body: formData
+        }
+      );
+
+      const resultado = await respuestaUpload.json();
+
+      if (!respuestaUpload.ok || !resultado.url) {
+        throw new Error(
+          resultado.message || "Error al subir la imagen a ImageKit."
+        );
+      }
+
+      imagenProductoUrl = resultado.url;
+      imagenProductoFileId = resultado.fileId || null;
+
+      mostrarEstadoFoto("✅ Imagen lista.", null);
+
+    } catch (error) {
+
+      console.error(error);
+
+      imagenProductoUrl = null;
+      imagenProductoFileId = null;
+
+      mostrarEstadoFoto("❌ " + error.message, "error");
+
+    } finally {
+
+      subiendoImagen = false;
+
+    }
+
+  }
+
+
+  /* =========================================
      GUARDAR PRODUCTO
   ========================================== */
 
@@ -1143,6 +1549,16 @@
     }
 
 
+    if (subiendoImagen) {
+
+      alert(
+        "Espera a que termine de subirse la foto antes de guardar."
+      );
+
+      return;
+    }
+
+
     try {
 
       await db.collection("productos").add({
@@ -1165,6 +1581,12 @@
         destacado: destacado,
 
         publicado: publicado,
+
+        imagenUrl:
+          imagenProductoUrl || null,
+
+        imagenFileId:
+          imagenProductoFileId || null,
 
         fechaCreacion:
           firebase.firestore.FieldValue.serverTimestamp()
@@ -1224,6 +1646,8 @@
 
     document.getElementById("publicado").checked =
       true;
+
+    quitarFoto();
 
   }
 
@@ -1318,6 +1742,12 @@
         html += `
 
           <div class="product">
+
+            ${
+              p.imagenUrl
+                ? `<img class="product-photo" src="${p.imagenUrl}" alt="${escapeHTML(p.nombre || "Producto")}">`
+                : ""
+            }
 
             <div class="product-name">
               ${escapeHTML(p.nombre || "Sin nombre")}
